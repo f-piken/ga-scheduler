@@ -9,7 +9,7 @@ class GenerateScheduleRequest(BaseModel):
     muthowifs: list
     departures: list
 
-@app.get("/")
+@app.post("/")
 def root():
     return {"status": "ok"}
 
