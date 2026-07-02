@@ -1,52 +1,28 @@
-import json
-from http.server import BaseHTTPRequestHandler
+from fastapi import FastAPI
+from pydantic import BaseModel
 
-from app.services.scheduler import SchedulerService
+app = FastAPI()
 
+class GenerateScheduleRequest(BaseModel):
+    jamaahs: list
+    team_leaders: list
+    muthowifs: list
+    departures: list
 
-class handler(BaseHTTPRequestHandler):
+@app.post("/")
+def root():
+    return {"status": "ok"}
 
-    def do_POST(self):
+@app.post("/generate-schedule")
+def generate_schedule(request: GenerateScheduleRequest):
 
-        try:
-            content_length = int(
-                self.headers.get('Content-Length', 0)
-            )
+    from app.services.scheduler import SchedulerService
 
-            body = self.rfile.read(content_length)
+    result = SchedulerService.generate(
+        jamaahs=request.jamaahs,
+        team_leaders=request.team_leaders,
+        muthowifs=request.muthowifs,
+        departures=request.departures
+    )
 
-            data = json.loads(body)
-
-            result = SchedulerService.generate(
-                jamaahs=data["jamaahs"],
-                team_leaders=data["team_leaders"],
-                muthowifs=data["muthowifs"],
-                departures=data["departures"]
-            )
-
-            self.send_response(200)
-            self.send_header(
-                "Content-Type",
-                "application/json"
-            )
-            self.end_headers()
-
-            self.wfile.write(
-                json.dumps(result).encode("utf-8")
-            )
-
-        except Exception as e:
-
-            self.send_response(500)
-            self.send_header(
-                "Content-Type",
-                "application/json"
-            )
-            self.end_headers()
-
-            self.wfile.write(
-                json.dumps({
-                    "success": False,
-                    "error": str(e)
-                }).encode("utf-8")
-            )
+    return result
