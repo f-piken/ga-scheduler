@@ -69,11 +69,11 @@ class FitnessCalculator:
 
             if departure_status == "closed":
 
-                total_penalty += 300
+                total_penalty += 600
 
             elif departure_status == "full":
 
-                total_penalty += 200
+                total_penalty += 600
 
             # =================================
             # SISA KUOTA
@@ -86,7 +86,7 @@ class FitnessCalculator:
 
             if remaining_quota <= 0:
 
-                total_penalty += 200
+                total_penalty += 400
 
             elif remaining_quota <= 5:
 
@@ -103,11 +103,11 @@ class FitnessCalculator:
 
             if tl_status == "busy":
 
-                total_penalty += 100
+                total_penalty += 300
 
             elif tl_status == "inactive":
 
-                total_penalty += 300
+                total_penalty += 600
 
             # =================================
             # MUTHOWIF STATUS
@@ -120,11 +120,11 @@ class FitnessCalculator:
 
             if muthowif_status == "busy":
 
-                total_penalty += 100
+                total_penalty += 300
 
             elif muthowif_status == "inactive":
 
-                total_penalty += 300
+                total_penalty += 600
 
         # =====================================
         # KONFLIK TEAM LEADER
@@ -185,15 +185,15 @@ class FitnessCalculator:
                 )
 
                 total_penalty += (
-                    overload * 100
+                    overload * 800
                 )
 
         # =====================================
         # FITNESS
         # =====================================
 
-        fitness = 1 / (
-            1 + total_penalty
+        fitness = 1000 / (
+            1000 + total_penalty
         )
 
         return round(
