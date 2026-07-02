@@ -9,15 +9,20 @@ class GenerateScheduleRequest(BaseModel):
     muthowifs: list
     departures: list
 
+@app.post("/")
+def root():
+    return {"status": "ok"}
+
 @app.post("/generate-schedule")
 def generate_schedule(request: GenerateScheduleRequest):
 
-    return {
-        "status": "success",
-        "received_data": {
-            "jamaahs": request.jamaahs,
-            "team_leaders": request.team_leaders,
-            "muthowifs": request.muthowifs,
-            "departures": request.departures
-        }
-    }
+    from app.services.scheduler import SchedulerService
+
+    result = SchedulerService.generate(
+        jamaahs=request.jamaahs,
+        team_leaders=request.team_leaders,
+        muthowifs=request.muthowifs,
+        departures=request.departures
+    )
+
+    return result
