@@ -56,7 +56,7 @@ class FitnessCalculator:
                 gene.get("departure_paket_id")
             ):
 
-                total_penalty += 1000
+                total_penalty += 1
 
             # =================================
             # STATUS KEBERANGKATAN
@@ -69,11 +69,11 @@ class FitnessCalculator:
 
             if departure_status == "closed":
 
-                total_penalty += 600
+                total_penalty += 0.6
 
             elif departure_status == "full":
 
-                total_penalty += 600
+                total_penalty += 0.6
 
             # =================================
             # SISA KUOTA
@@ -86,11 +86,11 @@ class FitnessCalculator:
 
             if remaining_quota <= 0:
 
-                total_penalty += 400
+                total_penalty += 0.4
 
             elif remaining_quota <= 5:
 
-                total_penalty += 50
+                total_penalty += 0.05
 
             # =================================
             # TEAM LEADER STATUS
@@ -103,11 +103,11 @@ class FitnessCalculator:
 
             if tl_status == "busy":
 
-                total_penalty += 300
+                total_penalty += 0.3
 
             elif tl_status == "inactive":
 
-                total_penalty += 600
+                total_penalty += 0.6
 
             # =================================
             # MUTHOWIF STATUS
@@ -120,11 +120,11 @@ class FitnessCalculator:
 
             if muthowif_status == "busy":
 
-                total_penalty += 300
+                total_penalty += 0.3
 
             elif muthowif_status == "inactive":
 
-                total_penalty += 600
+                total_penalty += 0.6
 
         # =====================================
         # KONFLIK TEAM LEADER
@@ -139,7 +139,7 @@ class FitnessCalculator:
             if total > 1:
 
                 total_penalty += (
-                    (total - 1) * 50
+                    (total - 1) * 0.05
                 )
 
         # =====================================
@@ -155,7 +155,7 @@ class FitnessCalculator:
             if total > 1:
 
                 total_penalty += (
-                    (total - 1) * 50
+                    (total - 1) * 0.05
                 )
 
         # =====================================
@@ -185,15 +185,15 @@ class FitnessCalculator:
                 )
 
                 total_penalty += (
-                    overload * 800
+                    overload * 0.8
                 )
 
         # =====================================
         # FITNESS
         # =====================================
 
-        fitness = 1000 / (
-            1000 + total_penalty
+        fitness = 1 / (
+            1 + total_penalty
         )
 
         return round(
