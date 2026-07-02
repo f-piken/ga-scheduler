@@ -22,16 +22,17 @@ def generate_schedule(
     request: GenerateScheduleRequest
 ):
 
-    result = SchedulerService.generate(
+    # result = SchedulerService.generate(
 
-        jamaahs=request.jamaahs,
+    #     jamaahs=request.jamaahs,
 
-        team_leaders=request.team_leaders,
+    #     team_leaders=request.team_leaders,
 
-        muthowifs=request.muthowifs,
+    #     muthowifs=request.muthowifs,
 
-        departures=request.departures
+    #     departures=request.departures
 
-    )
+    # )
+    result = "bagus"
 
     return result
