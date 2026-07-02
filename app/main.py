@@ -17,7 +17,7 @@ class GenerateScheduleRequest(BaseModel):
     departures: list
 
 
-@app.post("/generate-schedule")
+@app.post("/api/generate-schedule")
 def generate_schedule(
     request: GenerateScheduleRequest
 ):
