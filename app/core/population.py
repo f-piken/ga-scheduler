@@ -31,7 +31,7 @@ class PopulationGenerator:
 
                 and
 
-                departure["remaining_quota"] > 0
+                int(departure["remaining_quota"]) > 0
 
             )
 
