@@ -1,5 +1,5 @@
+from collections import defaultdict
 import random
-
 
 class Mutation:
 
@@ -11,9 +11,27 @@ class Mutation:
         departures
     ):
 
-        # =====================================
-        # RANDOM GENE
-        # =====================================
+        if len(chromosome) == 0:
+
+            return chromosome, {}
+
+        tl_usage = defaultdict(int)
+        muthowif_usage = defaultdict(int)
+        departure_usage = defaultdict(int)
+
+        for gene in chromosome:
+
+            tl_usage[
+                gene["team_leader_id"]
+            ] += 1
+
+            muthowif_usage[
+                gene["muthowif_id"]
+            ] += 1
+
+            departure_usage[
+                gene["departure_id"]
+            ] += 1
 
         mutation_index = random.randint(
             0,
@@ -28,92 +46,55 @@ class Mutation:
             mutation_index
         ]
 
-        # =====================================
-        # TEAM LEADER AKTIF
-        # =====================================
-
-        active_team_leaders = [
-
-            tl
-
-            for tl in team_leaders
-
-            if tl["status"] == "available"
-
+        paket_id = gene[
+            "jamaah_paket_id"
         ]
 
-        if active_team_leaders:
+        valid_departures = []
 
-            team_leader = random.choice(
-                active_team_leaders
-            )
-
-        else:
-
-            team_leader = random.choice(
-                team_leaders
-            )
-
-        # =====================================
-        # MUTHOWIF AKTIF
-        # =====================================
-
-        active_muthowifs = [
-
-            m
-
-            for m in muthowifs
-
-            if m["status"] == "available"
-
-        ]
-
-        if active_muthowifs:
-
-            muthowif = random.choice(
-                active_muthowifs
-            )
-
-        else:
-
-            muthowif = random.choice(
-                muthowifs
-            )
-
-        # =====================================
-        # DEPARTURE SESUAI PAKET
-        # =====================================
-
-        matching_departures = [
-
-            departure
-
-            for departure in departures
+        for departure in departures:
 
             if (
 
                 departure["paket_id"]
-
                 ==
-
-                gene.get(
-                    "jamaah_paket_id"
-                )
+                paket_id
 
                 and
 
-                departure[
-                    "remaining_quota"
-                ] > 0
+                str(
+                    departure["status"]
+                ).lower()
+                ==
+                "open"
 
-            )
+            ):
 
-        ]
+                current = departure_usage[
+                    departure["id"]
+                ]
 
-        if matching_departures:
+                quota = departure[
+                    "quota"
+                ]
 
-            departure = random.choice(
-                matching_departures
+                if current < quota:
+
+                    valid_departures.append(
+                        departure
+                    )
+
+        if valid_departures:
+
+            departure = min(
+
+                valid_departures,
+
+                key=lambda d:
+                departure_usage[
+                    d["id"]
+                ]
+
             )
 
         else:
@@ -122,9 +103,69 @@ class Mutation:
                 departures
             )
 
-        # =====================================
-        # UPDATE TEAM LEADER
-        # =====================================
+        available_tls = [
+
+            tl
+
+            for tl in team_leaders
+
+            if str(
+                tl["status"]
+            ).lower()
+            ==
+            "available"
+
+        ]
+
+        if not available_tls:
+
+            available_tls = (
+                team_leaders
+            )
+
+        team_leader = min(
+
+            available_tls,
+
+            key=lambda tl:
+            tl_usage[
+                tl["id"]
+            ]
+
+        )
+
+        available_muthowifs = [
+
+            m
+
+            for m in muthowifs
+
+            if str(
+                m["status"]
+            ).lower()
+            in [
+                "aktif",
+                "available"
+            ]
+
+        ]
+
+        if not available_muthowifs:
+
+            available_muthowifs = (
+                muthowifs
+            )
+
+        muthowif = min(
+
+            available_muthowifs,
+
+            key=lambda m:
+            muthowif_usage[
+                m["id"]
+            ]
+
+        )
 
         gene["team_leader_id"] = \
             team_leader["id"]
@@ -135,10 +176,6 @@ class Mutation:
         gene["team_leader_status"] = \
             team_leader["status"]
 
-        # =====================================
-        # UPDATE MUTHOWIF
-        # =====================================
-
         gene["muthowif_id"] = \
             muthowif["id"]
 
@@ -147,10 +184,6 @@ class Mutation:
 
         gene["muthowif_status"] = \
             muthowif["status"]
-
-        # =====================================
-        # UPDATE DEPARTURE
-        # =====================================
 
         gene["departure_id"] = \
             departure["id"]
@@ -170,12 +203,6 @@ class Mutation:
         gene["departure_status"] = \
             departure["status"]
 
-        # =====================================
-        # NEW GENE
-        # =====================================
-
-        new_gene = gene.copy()
-
         logs = {
 
             "mutation_index":
@@ -185,7 +212,7 @@ class Mutation:
                 old_gene,
 
             "after":
-                new_gene
+                gene.copy()
 
         }
 

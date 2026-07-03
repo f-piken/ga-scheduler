@@ -50,8 +50,16 @@ class GeneticAlgorithm:
             }
         })
 
-        best_chromosome = None
-        best_fitness = 0
+        # Cari kromosom terbaik awal
+        best_chromosome = max(
+            population,
+            key=lambda chromosome:
+            FitnessCalculator.calculate(chromosome)
+        )
+
+        best_fitness = FitnessCalculator.calculate(
+            best_chromosome
+        )
 
         for generation in range(self.generations):
 
@@ -59,6 +67,7 @@ class GeneticAlgorithm:
                 parent1,
                 parent2,
                 selection_logs
+
             ) = Selection.roulette_wheel(
                 population
             )
@@ -111,36 +120,38 @@ class GeneticAlgorithm:
 
             })
 
-            offspring1 = Repair.repair_schedule(
-                offspring1,
-                self.departures
-            )
-
-            offspring2 = Repair.repair_schedule(
-                offspring2,
-                self.departures
-            )
-
             (
                 offspring1,
                 mutation_logs1
-
             ) = Mutation.random_gene_mutation(
                 offspring1,
                 self.team_leaders,
                 self.muthowifs,
                 self.departures
             )
-
+            
             (
                 offspring2,
                 mutation_logs2
-
             ) = Mutation.random_gene_mutation(
                 offspring2,
                 self.team_leaders,
                 self.muthowifs,
                 self.departures
+            )
+            
+            offspring1 = Repair.repair_schedule(
+                offspring1,
+                self.departures,
+                self.team_leaders,
+                self.muthowifs
+            )
+            
+            offspring2 = Repair.repair_schedule(
+                offspring2,
+                self.departures,
+                self.team_leaders,
+                self.muthowifs
             )
 
             self.logs.append({
@@ -175,19 +186,9 @@ class GeneticAlgorithm:
                 offspring2
             )
 
-            self.logs.append({
-
-                "generation": generation + 1,
-
-                "phase": "regeneration",
-
-                "data": [
-
-                    regeneration_logs1,
-                    regeneration_logs2
-
-                ]
-            })
+            # ======================
+            # ELITISM
+            # ======================
 
             current_best = max(
                 population,
@@ -206,8 +207,35 @@ class GeneticAlgorithm:
             if current_fitness > best_fitness:
 
                 best_fitness = current_fitness
-
                 best_chromosome = current_best
+
+            worst = min(
+                population,
+                key=lambda chromosome:
+                FitnessCalculator.calculate(
+                    chromosome
+                )
+            )
+
+            population.remove(worst)
+
+            population.append(
+                best_chromosome
+            )
+
+            self.logs.append({
+
+                "generation": generation + 1,
+
+                "phase": "regeneration",
+
+                "data": [
+
+                    regeneration_logs1,
+                    regeneration_logs2
+
+                ]
+            })
 
         return {
 

@@ -1,219 +1,569 @@
-import random
-
+from collections import defaultdict
+from datetime import datetime
+import math
 
 class Repair:
+
+    MAX_JAMAAH_PER_TL = 40
+    MAX_JAMAAH_PER_MUTHOWIF = 40
 
     @staticmethod
     def repair_schedule(
         chromosome,
-        departures
+        departures,
+        team_leaders,
+        muthowifs
     ):
 
-        repaired_chromosome = []
+        if not chromosome:
+            return chromosome
+
+        departure_usage = defaultdict(int)
+
+        for gene in chromosome:
+
+            departure_usage[
+                gene["departure_id"]
+            ] += 1
 
         # =====================================
-        # REPAIR PAKET & DEPARTURE
+        # PERBAIKI DEPARTURE INVALID
         # =====================================
 
         for gene in chromosome:
 
-            jamaah_paket_id = gene.get(
+            paket_id = gene[
                 "jamaah_paket_id"
-            )
+            ]
 
-            departure_paket_id = gene.get(
-                "departure_paket_id"
-            )
+            current_departure = gene[
+                "departure_id"
+            ]
 
-            departure_status = gene.get(
-                "departure_status"
-            )
+            departure_status = str(
+                gene.get(
+                    "departure_status",
+                    ""
+                )
+            ).lower()
 
-            remaining_quota = gene.get(
-                "remaining_quota",
-                0
-            )
+            valid_departures = []
+
+            for departure in departures:
+
+                if (
+
+                    departure["paket_id"]
+                    == paket_id
+
+                    and
+
+                    str(
+                        departure["status"]
+                    ).lower()
+                    == "open"
+
+                ):
+
+                    current_count = (
+                        departure_usage[
+                            departure["id"]
+                        ]
+                    )
+
+                    if (
+                        current_count
+                        <
+                        departure["quota"]
+                    ):
+
+                        valid_departures.append(
+                            departure
+                        )
 
             invalid = (
 
-                jamaah_paket_id
-                !=
-                departure_paket_id
-
-                or
-
-                departure_status != "open"
-
-                or
-
-                remaining_quota <= 0
-
-            )
-
-            if invalid:
-
-                valid_departures = [
-
-                    departure
-
-                    for departure in departures
-
-                    if (
-
-                        departure["paket_id"]
-                        ==
-                        jamaah_paket_id
-
-                        and
-
-                        departure["status"]
-                        ==
-                        "open"
-
-                        and
-
-                        departure[
-                            "remaining_quota"
-                        ] > 0
-
-                    )
-
+                gene[
+                    "jamaah_paket_id"
                 ]
 
-                if valid_departures:
+                !=
 
-                    departure = random.choice(
-                        valid_departures
+                gene[
+                    "departure_paket_id"
+                ]
+
+                or
+
+                departure_status
+                !=
+                "open"
+
+            )
+
+            if invalid and valid_departures:
+
+                best_departure = min(
+
+                    valid_departures,
+
+                    key=lambda d:
+                    departure_usage[
+                        d["id"]
+                    ]
+
+                )
+
+                departure_usage[
+                    current_departure
+                ] -= 1
+
+                departure_usage[
+                    best_departure["id"]
+                ] += 1
+
+                gene["departure_id"] = (
+                    best_departure["id"]
+                )
+
+                gene["departure_paket_id"] = (
+                    best_departure["paket_id"]
+                )
+
+                gene["departure_date"] = (
+                    best_departure[
+                        "departure_date"
+                    ]
+                )
+
+                gene["quota"] = (
+                    best_departure["quota"]
+                )
+
+                gene["remaining_quota"] = (
+                    best_departure[
+                        "remaining_quota"
+                    ]
+                )
+
+                gene["departure_status"] = (
+                    best_departure["status"]
+                )
+
+        # =====================================
+        # PERBAIKI OVERLOAD QUOTA
+        # =====================================
+
+        changed = True
+
+        while changed:
+
+            changed = False
+
+            for departure in departures:
+
+                dep_id = departure["id"]
+
+                quota = departure[
+                    "quota"
+                ]
+
+                total = departure_usage[
+                    dep_id
+                ]
+
+                if total <= quota:
+                    continue
+
+                overload = total - quota
+
+                moved = 0
+
+                for gene in chromosome:
+
+                    if moved >= overload:
+                        break
+
+                    if (
+                        gene["departure_id"]
+                        != dep_id
+                    ):
+                        continue
+
+                    paket_id = gene[
+                        "jamaah_paket_id"
+                    ]
+
+                    candidates = [
+
+                        d
+
+                        for d in departures
+
+                        if (
+
+                            d["paket_id"]
+                            == paket_id
+
+                            and
+
+                            str(
+                                d["status"]
+                            ).lower()
+                            == "open"
+
+                            and
+
+                            departure_usage[
+                                d["id"]
+                            ]
+                            <
+                            d["quota"]
+
+                        )
+
+                    ]
+
+                    if not candidates:
+                        continue
+
+                    target = min(
+
+                        candidates,
+
+                        key=lambda d:
+                        departure_usage[
+                            d["id"]
+                        ]
+
                     )
 
-                    gene["departure_id"] = \
-                        departure["id"]
+                    departure_usage[
+                        dep_id
+                    ] -= 1
 
-                    gene["departure_paket_id"] = \
-                        departure["paket_id"]
+                    departure_usage[
+                        target["id"]
+                    ] += 1
 
-                    gene["departure_date"] = \
-                        departure["departure_date"]
+                    gene["departure_id"] = (
+                        target["id"]
+                    )
 
-                    gene["quota"] = \
-                        departure["quota"]
+                    gene["departure_paket_id"] = (
+                        target["paket_id"]
+                    )
 
-                    gene["remaining_quota"] = \
-                        departure["remaining_quota"]
+                    gene["departure_date"] = (
+                        target[
+                            "departure_date"
+                        ]
+                    )
 
-                    gene["departure_status"] = \
-                        departure["status"]
+                    gene["quota"] = (
+                        target["quota"]
+                    )
 
-            repaired_chromosome.append(
-                gene
+                    gene["remaining_quota"] = (
+                        target[
+                            "remaining_quota"
+                        ]
+                    )
+
+                    gene["departure_status"] = (
+                        target["status"]
+                    )
+
+                    moved += 1
+                    changed = True
+
+        # =====================================
+        # GROUP PER DEPARTURE
+        # =====================================
+
+        departure_groups = defaultdict(list)
+
+        for gene in chromosome:
+
+            departure_groups[
+                gene["departure_id"]
+            ].append(gene)
+
+        # =====================================
+        # TL AVAILABLE
+        # =====================================
+
+        available_tls = [
+
+            tl
+
+            for tl in team_leaders
+
+            if str(
+                tl["status"]
+            ).lower()
+            == "available"
+
+        ]
+
+        if not available_tls:
+
+            available_tls = (
+                team_leaders
             )
 
         # =====================================
-        # 1 DEPARTURE = 1 TEAM LEADER
+        # MUTHOWIF AVAILABLE
         # =====================================
 
-        departure_team_leader_map = {}
+        available_muthowifs = [
 
-        # =====================================
-        # 1 DEPARTURE = 1 MUTHOWIF
-        # =====================================
+            m
 
-        departure_muthowif_map = {}
+            for m in muthowifs
 
-        for gene in repaired_chromosome:
+            if str(
+                m["status"]
+            ).lower()
+            in [
+                "available",
+                "aktif"
+            ]
 
-            departure_id = gene.get(
-                "departure_id"
+        ]
+
+        if not available_muthowifs:
+
+            available_muthowifs = (
+                muthowifs
             )
 
-            # =================================
-            # TEAM LEADER
-            # =================================
+                # =====================================
+        # TRACKING JADWAL TL & MUTHOWIF
+        # =====================================
 
-            if departure_id not in \
-                departure_team_leader_map:
+        tl_schedule = defaultdict(list)
+        muthowif_schedule = defaultdict(list)
 
-                departure_team_leader_map[
-                    departure_id
-                ] = {
+        # =====================================
+        # REBALANCE TL
+        # =====================================
 
-                    "team_leader_id":
-                    gene.get(
-                        "team_leader_id"
-                    ),
+        for departure_id, jamaahs in departure_groups.items():
 
-                    "team_leader_name":
-                    gene.get(
-                        "team_leader_name"
-                    ),
+            departure_date = jamaahs[0]["departure_date"]
 
-                    "team_leader_status":
-                    gene.get(
-                        "team_leader_status"
+            total_jamaah = len(jamaahs)
+
+            required_tl = max(
+                1,
+                math.ceil(
+                    total_jamaah /
+                    Repair.MAX_JAMAAH_PER_TL
+                )
+            )
+
+            selected_tls = []
+
+            for tl in available_tls:
+
+                conflict = False
+
+                for used_date in tl_schedule[
+                    tl["id"]
+                ]:
+
+                    try:
+
+                        d1 = datetime.strptime(
+                            departure_date,
+                            "%Y-%m-%d"
+                        )
+
+                        d2 = datetime.strptime(
+                            used_date,
+                            "%Y-%m-%d"
+                        )
+
+                        diff_days = abs(
+                            (d1 - d2).days
+                        )
+
+                        if diff_days <= 21:
+
+                            conflict = True
+                            break
+
+                    except Exception:
+                        pass
+
+                if not conflict:
+
+                    selected_tls.append(
+                        tl
                     )
 
-                }
+                if len(
+                    selected_tls
+                ) >= required_tl:
 
-            else:
+                    break
 
-                gene["team_leader_id"] = \
-                    departure_team_leader_map[
-                        departure_id
-                    ]["team_leader_id"]
+            if len(
+                selected_tls
+            ) < required_tl:
 
-                gene["team_leader_name"] = \
-                    departure_team_leader_map[
-                        departure_id
-                    ]["team_leader_name"]
+                remaining = required_tl - len(
+                    selected_tls
+                )
 
-                gene["team_leader_status"] = \
-                    departure_team_leader_map[
-                        departure_id
-                    ]["team_leader_status"]
+                selected_tls.extend(
+                    available_tls[:remaining]
+                )
 
-            # =================================
-            # MUTHOWIF
-            # =================================
+            for tl in selected_tls:
 
-            if departure_id not in \
-                departure_muthowif_map:
+                tl_schedule[
+                    tl["id"]
+                ].append(
+                    departure_date
+                )
 
-                departure_muthowif_map[
-                    departure_id
-                ] = {
+            for index, gene in enumerate(
+                jamaahs
+            ):
 
-                    "muthowif_id":
-                    gene.get(
-                        "muthowif_id"
-                    ),
+                tl = selected_tls[
+                    index % len(
+                        selected_tls
+                    )
+                ]
 
-                    "muthowif_name":
-                    gene.get(
-                        "muthowif_name"
-                    ),
+                gene[
+                    "team_leader_id"
+                ] = tl["id"]
 
-                    "muthowif_status":
-                    gene.get(
-                        "muthowif_status"
+                gene[
+                    "team_leader_name"
+                ] = tl["name"]
+
+                gene[
+                    "team_leader_status"
+                ] = tl["status"]
+
+        # =====================================
+        # REBALANCE MUTHOWIF
+        # =====================================
+
+        for departure_id, jamaahs in departure_groups.items():
+
+            departure_date = jamaahs[0]["departure_date"]
+
+            total_jamaah = len(jamaahs)
+
+            required_muthowif = max(
+                1,
+                math.ceil(
+                    total_jamaah /
+                    Repair.MAX_JAMAAH_PER_MUTHOWIF
+                )
+            )
+
+            selected_muthowifs = []
+
+            for m in available_muthowifs:
+
+                conflict = False
+
+                for used_date in (
+                    muthowif_schedule[
+                        m["id"]
+                    ]
+                ):
+
+                    try:
+
+                        d1 = datetime.strptime(
+                            departure_date,
+                            "%Y-%m-%d"
+                        )
+
+                        d2 = datetime.strptime(
+                            used_date,
+                            "%Y-%m-%d"
+                        )
+
+                        diff_days = abs(
+                            (d1 - d2).days
+                        )
+
+                        if diff_days <= 21:
+
+                            conflict = True
+                            break
+
+                    except Exception:
+                        pass
+
+                if not conflict:
+
+                    selected_muthowifs.append(
+                        m
                     )
 
-                }
+                if len(
+                    selected_muthowifs
+                ) >= required_muthowif:
 
-            else:
+                    break
 
-                gene["muthowif_id"] = \
-                    departure_muthowif_map[
-                        departure_id
-                    ]["muthowif_id"]
+            if len(
+                selected_muthowifs
+            ) < required_muthowif:
 
-                gene["muthowif_name"] = \
-                    departure_muthowif_map[
-                        departure_id
-                    ]["muthowif_name"]
+                remaining = (
+                    required_muthowif
+                    -
+                    len(
+                        selected_muthowifs
+                    )
+                )
 
-                gene["muthowif_status"] = \
-                    departure_muthowif_map[
-                        departure_id
-                    ]["muthowif_status"]
+                selected_muthowifs.extend(
+                    available_muthowifs[
+                        :remaining
+                    ]
+                )
 
-        return repaired_chromosome
+            for m in selected_muthowifs:
+
+                muthowif_schedule[
+                    m["id"]
+                ].append(
+                    departure_date
+                )
+
+            for index, gene in enumerate(
+                jamaahs
+            ):
+
+                m = selected_muthowifs[
+                    index %
+                    len(
+                        selected_muthowifs
+                    )
+                ]
+
+                gene[
+                    "muthowif_id"
+                ] = m["id"]
+
+                gene[
+                    "muthowif_name"
+                ] = m["name"]
+
+                gene[
+                    "muthowif_status"
+                ] = m["status"]
+
+        return chromosome
